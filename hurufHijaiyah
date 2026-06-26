@@ -1,1 +1,510 @@
 
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permainan Huruf Hijaiyah</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --primary: #4CAF50;
+            --primary-hover: #45a049;
+            --secondary: #2196F3;
+            --card-bg: #fff;
+            --shadow: rgba(0,0,0,0.1);
+        }
+        
+        [data-theme="dark"] {
+            --bg-color: #1a1a2e;
+            --text-color: #e6e6e6;
+            --primary: #0f3460;
+            --primary-hover: #16213e;
+            --secondary: #e94560;
+            --card-bg: #16213e;
+            --shadow: rgba(255,255,255,0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        html { font-size: 16px; } /* For zoom functionality */
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Navbar / Controls */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--card-bg);
+            box-shadow: 0 2px 5px var(--shadow);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .controls button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .controls button:hover { background-color: var(--primary-hover); }
+
+        /* Screens */
+        .screen { display: none; padding: 2rem; text-align: center; max-width: 800px; margin: 0 auto; width: 100%; }
+        .screen.active { display: block; }
+
+        /* Typography & Inputs */
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+        input[type="text"], select {
+            padding: 0.8rem;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            border: 2px solid var(--primary);
+            width: 80%;
+            max-width: 400px;
+            margin-bottom: 1rem;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        .btn-large {
+            display: block; width: 80%; max-width: 400px; margin: 10px auto;
+            padding: 1rem; font-size: 1.2rem; background-color: var(--secondary);
+            color: white; border: none; border-radius: 8px; cursor: pointer;
+        }
+
+        /* Grid for Notes & Options */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 15px;
+            margin-top: 2rem;
+        }
+
+        .hijaiyah-card {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 10px;
+            font-size: 3rem;
+            box-shadow: 0 4px 6px var(--shadow);
+            cursor: pointer;
+            user-select: none;
+        }
+        .hijaiyah-card:hover { transform: scale(1.05); }
+
+        /* Quiz Specific */
+        .shadow-target {
+            font-size: 8rem;
+            color: transparent;
+            text-shadow: 0 0 0 var(--text-color);
+            margin: 2rem 0;
+        }
+        .stats {
+            display: flex; justify-content: space-around; font-size: 1.2rem;
+            font-weight: bold; margin-bottom: 1rem;
+        }
+        .blank-container { font-size: 3rem; letter-spacing: 1rem; direction: rtl; margin: 2rem 0; }
+        
+        /* Certificate */
+        #certCanvas { max-width: 100%; border: 2px solid var(--text-color); border-radius: 10px; margin: 1rem 0; background: white;}
+
+        /* Confetti */
+        .confetti {
+            position: fixed; top: -10px; z-index: 9999;
+            width: 10px; height: 10px; background-color: red;
+            animation: fall linear forwards;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(720deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .navbar { flex-direction: column; }
+            .controls button { margin-bottom: 5px; }
+            .hijaiyah-card { font-size: 2rem; padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="controls">
+            <button onclick="goToScreen('home')">🏠 Home</button>
+            <button onclick="zoomIn()">🔍 Zoom +</button>
+            <button onclick="zoomOut()">🔍 Zoom -</button>
+            <button onclick="toggleDark()">🌙 Gelap/Terang</button>
+        </div>
+        <div id="playerNameDisplay" style="font-weight: bold;"></div>
+    </div>
+
+    <div id="home" class="screen active">
+        <h1>Permainan Huruf Hijaiyah</h1>
+        <p>Sila masukkan nama anda untuk bermula:</p>
+        <input type="text" id="playerName" placeholder="Nama Anda..." oninput="updateName()">
+        <br>
+        <button class="btn-large" onclick="goToScreen('nota')">📖 Nota Huruf Hijaiyah</button>
+        <button class="btn-large" onclick="goToScreen('quizMenu')">🎮 Main Kuiz</button>
+    </div>
+
+    <div id="nota" class="screen">
+        <h2>Nota Huruf Hijaiyah</h2>
+        <p>Klik pada huruf untuk mendengar sebutannya (Audio).</p>
+        <div id="notaGrid" class="grid-container"></div>
+    </div>
+
+    <div id="quizMenu" class="screen">
+        <h2>Pilih Kuiz Anda</h2>
+        
+        <label for="timeLimit">Pilih Masa (Teka Huruf & Isi Kosong):</label><br>
+        <select id="timeLimit">
+            <option value="1800">30 Minit</option>
+            <option value="3600">60 Minit</option>
+            <option value="5400">90 Minit</option>
+            <option value="7200">120 Minit</option>
+        </select>
+
+        <button class="btn-large" onclick="startQuiz('shadow')">👤 Kuiz 1: Padanan Bayangan</button>
+        <button class="btn-large" onclick="startQuiz('audio')">🎧 Kuiz 2: Teka Huruf (Audio)</button>
+        <button class="btn-large" onclick="startQuiz('blank')">📝 Kuiz 3: Isi Tempat Kosong</button>
+    </div>
+
+    <div id="quiz-shadow" class="screen">
+        <h2>Padanan Bayangan</h2>
+        <div class="stats">
+            <span>Skor: <span id="scoreShadow">0</span></span>
+        </div>
+        <div id="shadowTarget" class="shadow-target"></div>
+        <div id="shadowOptions" class="grid-container"></div>
+    </div>
+
+    <div id="quiz-audio" class="screen">
+        <h2>Teka Huruf (Audio)</h2>
+        <div class="stats">
+            <span>Masa: <span id="timeAudio">00:00</span></span>
+            <span>Skor: <span id="scoreAudio">0</span></span>
+        </div>
+        <button class="btn-large" onclick="playCurrentAudio()" style="background-color: var(--primary);">🔊 Ulang Audio</button>
+        <div id="audioOptions" class="grid-container"></div>
+    </div>
+
+    <div id="quiz-blank" class="screen">
+        <h2>Isi Tempat Kosong</h2>
+        <div class="stats">
+            <span>Masa: <span id="timeBlank">00:00</span></span>
+            <span>Skor: <span id="scoreBlank">0</span></span>
+        </div>
+        <div id="blankSequence" class="blank-container"></div>
+        <p>Pilih huruf yang tertinggal:</p>
+        <div id="blankOptions" class="grid-container"></div>
+    </div>
+
+    <div id="certificate" class="screen">
+        <h2>Tahniah! 🎉</h2>
+        <canvas id="certCanvas" width="600" height="400"></canvas>
+        <br>
+        <button class="btn-large" style="background-color: var(--primary);" onclick="downloadCert()">💾 Muat Turun Sijil</button>
+        <button class="btn-large" onclick="goToScreen('quizMenu')">🔄 Main Lagi</button>
+    </div>
+
+    <script>
+        // Data Huruf Hijaiyah
+        const hurufHijaiyah = ['ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
+        
+        let userName = "Pelajar";
+        let currentScore = 0;
+        let currentTarget = "";
+        let timer;
+        let timeLeft = 0;
+        let activeQuiz = "";
+        let currentZoom = 16; // Base font size
+
+        // --- System Controls ---
+        function updateName() {
+            let val = document.getElementById("playerName").value;
+            userName = val.trim() === "" ? "Pelajar" : val;
+            document.getElementById("playerNameDisplay").innerText = "👤 " + userName;
+        }
+
+        function goToScreen(id) {
+            clearInterval(timer); // Hentikan timer jika ada
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(id === 'nota') loadNota();
+        }
+
+        function toggleDark() {
+            const body = document.body;
+            if(body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+            }
+        }
+
+        function zoomIn() { currentZoom += 2; document.documentElement.style.fontSize = currentZoom + 'px'; }
+        function zoomOut() { if(currentZoom > 10) currentZoom -= 2; document.documentElement.style.fontSize = currentZoom + 'px'; }
+
+        // --- Audio & Sound Effects ---
+        function playSound(type) {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            if (type === 'correct') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.5);
+            } else {
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        function speakLetter(letter) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(letter);
+                utterance.lang = 'ar-SA'; // Sebutan Arab
+                utterance.rate = 0.8;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // --- Confetti Animation ---
+        function shootConfetti() {
+            for (let i = 0; i < 50; i++) {
+                let confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 4000);
+            }
+        }
+
+        // --- Utils ---
+        function shuffle(array) { return array.sort(() => Math.random() - 0.5); }
+        function getRandomLetters(correct, count) {
+            let filtered = hurufHijaiyah.filter(h => h !== correct);
+            let selection = shuffle(filtered).slice(0, count - 1);
+            selection.push(correct);
+            return shuffle(selection);
+        }
+
+        // --- Features ---
+        function loadNota() {
+            const grid = document.getElementById("notaGrid");
+            grid.innerHTML = "";
+            hurufHijaiyah.forEach(huruf => {
+                let card = document.createElement('div');
+                card.className = "hijaiyah-card";
+                card.innerText = huruf;
+                card.onclick = () => speakLetter(huruf);
+                grid.appendChild(card);
+            });
+        }
+
+        function startQuiz(type) {
+            currentScore = 0;
+            activeQuiz = type;
+            timeLeft = parseInt(document.getElementById("timeLimit").value); // dalam saat
+            
+            if(type === 'shadow') { goToScreen('quiz-shadow'); generateShadowQuestion(); }
+            if(type === 'audio') { goToScreen('quiz-audio'); startTimer('timeAudio'); generateAudioQuestion(); }
+            if(type === 'blank') { goToScreen('quiz-blank'); startTimer('timeBlank'); generateBlankQuestion(); }
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function startTimer(displayId) {
+            document.getElementById(displayId).innerText = formatTime(timeLeft);
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById(displayId).innerText = formatTime(timeLeft);
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    endQuiz();
+                }
+            }, 1000);
+        }
+
+        function checkAnswer(selected, correct) {
+            if (selected === correct) {
+                playSound('correct');
+                currentScore += 10;
+            } else {
+                playSound('wrong');
+            }
+            
+            // Kemaskini UI Skor
+            if(activeQuiz === 'shadow') { document.getElementById("scoreShadow").innerText = currentScore; generateShadowQuestion(); }
+            if(activeQuiz === 'audio') { document.getElementById("scoreAudio").innerText = currentScore; generateAudioQuestion(); }
+            if(activeQuiz === 'blank') { document.getElementById("scoreBlank").innerText = currentScore; generateBlankQuestion(); }
+
+            // Untuk quiz shadow (tiada masa), kita hadkan 10 soalan (100 markah max)
+            if(activeQuiz === 'shadow' && currentScore >= 100) endQuiz();
+        }
+
+        // Kuiz 1: Bayangan
+        function generateShadowQuestion() {
+            currentTarget = hurufHijaiyah[Math.floor(Math.random() * hurufHijaiyah.length)];
+            document.getElementById("shadowTarget").innerText = currentTarget;
+            
+            const options = getRandomLetters(currentTarget, 4);
+            const grid = document.getElementById("shadowOptions");
+            grid.innerHTML = "";
+            options.forEach(opt => {
+                let card = document.createElement('div');
+                card.className = "hijaiyah-card";
+                card.innerText = opt;
+                card.onclick = () => checkAnswer(opt, currentTarget);
+                grid.appendChild(card);
+            });
+        }
+
+        // Kuiz 2: Audio
+        function generateAudioQuestion() {
+            currentTarget = hurufHijaiyah[Math.floor(Math.random() * hurufHijaiyah.length)];
+            setTimeout(() => playCurrentAudio(), 500); // auto play sound
+            
+            const options = getRandomLetters(currentTarget, 4);
+            const grid = document.getElementById("audioOptions");
+            grid.innerHTML = "";
+            options.forEach(opt => {
+                let card = document.createElement('div');
+                card.className = "hijaiyah-card";
+                card.innerText = opt;
+                card.onclick = () => checkAnswer(opt, currentTarget);
+                grid.appendChild(card);
+            });
+        }
+        function playCurrentAudio() { speakLetter(currentTarget); }
+
+        // Kuiz 3: Isi Tempat Kosong
+        function generateBlankQuestion() {
+            let startIndex = Math.floor(Math.random() * (hurufHijaiyah.length - 3));
+            let seq = [hurufHijaiyah[startIndex], hurufHijaiyah[startIndex+1], hurufHijaiyah[startIndex+2]];
+            
+            let missingIndex = Math.floor(Math.random() * 3);
+            currentTarget = seq[missingIndex];
+            seq[missingIndex] = "___";
+            
+            document.getElementById("blankSequence").innerText = seq.join("  ");
+
+            const options = getRandomLetters(currentTarget, 4);
+            const grid = document.getElementById("blankOptions");
+            grid.innerHTML = "";
+            options.forEach(opt => {
+                let card = document.createElement('div');
+                card.className = "hijaiyah-card";
+                card.innerText = opt;
+                card.onclick = () => checkAnswer(opt, currentTarget);
+                grid.appendChild(card);
+            });
+        }
+
+        // --- End Quiz & Certificate ---
+        function endQuiz() {
+            goToScreen('certificate');
+            shootConfetti();
+            playSound('correct');
+            drawCertificate();
+        }
+
+        function drawCertificate() {
+            const canvas = document.getElementById('certCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Latar belakang
+            ctx.fillStyle = '#f4f7f6';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Border
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 15;
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+            ctx.strokeStyle = '#2196F3';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+            // Teks
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#333';
+            
+            ctx.font = 'bold 30px Arial';
+            ctx.fillText('SIJIL PENCAPAIAN', canvas.width / 2, 80);
+            
+            ctx.font = '20px Arial';
+            ctx.fillText('Dianugerahkan kepada:', canvas.width / 2, 130);
+            
+            ctx.font = 'bold 40px Arial';
+            ctx.fillStyle = '#e94560';
+            ctx.fillText(userName, canvas.width / 2, 190);
+            
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#333';
+            let namaKuiz = activeQuiz === 'shadow' ? 'Padanan Bayangan' : activeQuiz === 'audio' ? 'Teka Huruf (Audio)' : 'Isi Tempat Kosong';
+            ctx.fillText(`Kerana cemerlang dalam Kuiz: ${namaKuiz}`, canvas.width / 2, 240);
+            
+            ctx.font = 'bold 30px Arial';
+            ctx.fillStyle = '#0f3460';
+            ctx.fillText(`Skor Anda: ${currentScore}`, canvas.width / 2, 300);
+
+            // Tarikh
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#555';
+            const date = new Date().toLocaleDateString('ms-MY');
+            ctx.fillText(`Tarikh: ${date}`, canvas.width / 2, 350);
+        }
+
+        function downloadCert() {
+            const canvas = document.getElementById('certCanvas');
+            const dataURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = `Sijil_Hijaiyah_${userName}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Set initial state
+        updateName();
+    </script>
+</body>
+</html>
